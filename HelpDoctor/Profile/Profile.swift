@@ -7,3 +7,10 @@
 //
 
 import Foundation
+
+final class Profile {
+    var regions: [Regions]? = []
+    var cities: [Cities]? = []
+    var medicalOrganization : [MedicalOrganization]? = []
+    var responce: (Int?,String?)?
+}

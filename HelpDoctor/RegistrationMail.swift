@@ -7,3 +7,13 @@
 //
 
 import Foundation
+
+func parseJSON_RegMail (for startPoint : [String: AnyObject]?, response: URLResponse?) -> (Int?,String?)? {
+    
+    guard let status = startPoint?["status"] as? String,
+        let httpResponse = response as? HTTPURLResponse
+        
+        else { return (nil,nil) }
+    
+    return (httpResponse.statusCode, status)
+}

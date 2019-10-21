@@ -7,3 +7,18 @@
 //
 
 import Foundation
+
+func parseJSON_getRegions (for startPoint : [AnyObject]?, response: URLResponse?) -> ([Regions],Int?,String?)? {
+    var arrRegions: [Regions] = []
+    
+    guard  let httpResponse = response as? HTTPURLResponse
+        else { return ([],nil,nil) }
+    
+    guard let startPoint = startPoint else { return ([],nil,nil) }
+    
+    for finalObj in startPoint {
+        guard  let obj  = finalObj as? [String: Any] else  { return ([],nil,nil) }
+        arrRegions.append(Regions(regionId: obj["regionId"] as! Int, regionName: obj["regionName"] as? String))
+    }
+    return (arrRegions,httpResponse.statusCode, nil)
+}

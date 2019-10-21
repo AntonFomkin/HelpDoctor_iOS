@@ -7,3 +7,8 @@
 //
 
 import Foundation
+
+struct Cities {
+    let id: Int
+    let cityName: String?
+}

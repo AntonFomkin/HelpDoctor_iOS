@@ -7,3 +7,8 @@
 //
 
 import Foundation
+
+struct Regions {
+    let regionId : Int
+    let regionName: String?
+}

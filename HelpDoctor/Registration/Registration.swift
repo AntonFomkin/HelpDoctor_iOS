@@ -7,22 +7,23 @@
 //
 
 import Foundation
-import UIKit
 
-final class Registration{
-
-    var email: String
+final class Registration {
+    
+    var email: String?
     var password: String?
+    var token: String?
     var requestParams: [String:String]
     var responce: (Int?,String?)?
- 
-    init(email: String,password: String?) {
+    
+    init(email: String?,password: String?, token:String?) {
         
         self.email = email
         self.password = password
-        requestParams = prepareRequestParams(email: self.email, password: self.password)
+        self.token = token
+        requestParams = prepareRequestParams(email: self.email, password: self.password, token: self.token)
     }
-
+    
 }
 
 
