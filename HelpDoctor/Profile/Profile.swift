@@ -12,5 +12,9 @@ final class Profile {
     var regions: [Regions]? = []
     var cities: [Cities]? = []
     var medicalOrganization : [MedicalOrganization]? = []
+    var medicalSpecialization : [MedicalSpecialization]? = []
+    var listOfInterests : [String:[ListOfInterests]]? = [:]
     var responce: (Int?,String?)?
 }
+
+
