@@ -38,9 +38,15 @@ enum TypeOfRequest: String {
     case getRegions = "/profile/regions"
     case getListCities = "/profile/cities/"
     case getMedicalOrganization = "/profile/works/"
+    case getMedicalSpecialization = "/profile/specializations"
+    case getListOfInterests = "/profile/sc_interests/"
+    case getListOfInterestsExtOne = "/profile/sc_interests_speccode1/"
+    case getListOfInterestsExtTwo = "/profile/sc_interests_speccode2/"
+    case checkProfile = "/profile/check"
+    case updateProfile = "/profile/update"
 }
 
-func getCurrentSession (typeOfContent: TypeOfRequest,requestParams: [String:String]) -> (URLSession,URLRequest) {
+func getCurrentSession (typeOfContent: TypeOfRequest,requestParams: [String:Any]) -> (URLSession,URLRequest) {
     
     let configuration = URLSessionConfiguration.default
     let session =  URLSession(configuration: configuration)
@@ -51,30 +57,39 @@ func getCurrentSession (typeOfContent: TypeOfRequest,requestParams: [String:Stri
     urlConstructor.path = "/public/api" + typeOfContent.rawValue
     
     if typeOfContent == .deleteMail {
-        urlConstructor.path = "/public/api" + typeOfContent.rawValue + requestParams["email"]!
+        urlConstructor.path = "/public/api" + typeOfContent.rawValue + (requestParams["email"] as! String)
     }
     
     if typeOfContent == .getListCities || typeOfContent == .getMedicalOrganization  {
-        urlConstructor.path = "/public/api" + typeOfContent.rawValue + requestParams["region"]!
+        urlConstructor.path = "/public/api" + typeOfContent.rawValue + (requestParams["region"] as! String)
     }
- 
+    
+    if typeOfContent == .getListOfInterestsExtOne || typeOfContent == .getListOfInterestsExtTwo   {
+        urlConstructor.path = "/public/api" + typeOfContent.rawValue + (requestParams["spec_code"] as! String)
+    }
     var request = URLRequest(url: urlConstructor.url!)
     
     switch typeOfContent {
-    case .registrationMail,.recoveryMail,.getToken,.logout:
+    case .registrationMail,.recoveryMail,.getToken,.logout,.checkProfile:
         
         
-        let jsonData = serializationJSON(obj: requestParams)
+        let jsonData = serializationJSON(obj: requestParams as! [String : String])
         
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        if typeOfContent == .logout {
+        if typeOfContent == .logout || typeOfContent == .checkProfile {
             request.setValue(myToken, forHTTPHeaderField: "X-Auth-Token")
         } else {
             request.httpBody = jsonData
         }
+    case .updateProfile:
         
+        
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(myToken, forHTTPHeaderField: "X-Auth-Token")
+        request.httpBody = requestParams["json"] as? Data
     default :
         break
     }
@@ -86,12 +101,12 @@ private func serializationJSON(obj: [String:String]) -> Data? {
 }
 
 
-func getData<T>(typeOfContent: TypeOfRequest,returning: T.Type, requestParams: [String:String], completionBlock: @escaping (T?) -> () ) -> () {
+func getData<T>(typeOfContent: TypeOfRequest,returning: T.Type, requestParams: [String:Any], completionBlock: @escaping (T?) -> () ) -> () {
     
     let currentSession = getCurrentSession(typeOfContent: typeOfContent, requestParams: requestParams)
     let session = currentSession.0
     let request = currentSession.1
-    var regMailDataResponse:T?//(Int?,String?)
+    var replyReturn:T?
     
     _ = session.dataTask(with: request) { (data: Data?,
         response: URLResponse?,
@@ -104,45 +119,74 @@ func getData<T>(typeOfContent: TypeOfRequest,returning: T.Type, requestParams: [
                                                                options: JSONSerialization.ReadingOptions.allowFragments)
                 else { return }
             
+            guard let httpResponse = response as? HTTPURLResponse else {return}
+            let responceTrueResult = responceCode(code: httpResponse.statusCode)
+            
+            
             switch typeOfContent {
-            case .registrationMail,.recoveryMail,.deleteMail,.logout:
+            case .registrationMail,.recoveryMail,.deleteMail,.logout,.checkProfile,.updateProfile:
                 guard let startPoint = json as? [String: AnyObject] else { return }
-                regMailDataResponse = (parseJSON_RegMail(for: startPoint, response: response) as? T)
+                replyReturn = (parseJSONPublicMethod(for: startPoint, response: response) as? T)
             case .getToken:
                 guard let startPoint = json as? [String: AnyObject] else { return }
-                regMailDataResponse = (parseJSON_getToken(for: startPoint, response: response) as? T)
+                replyReturn = (parseJSON_getToken(for: startPoint, response: response) as? T)
             case .getRegions :
-                guard let httpResponse = response as? HTTPURLResponse else {return}
-                if httpResponse.statusCode != 200 {
-                    regMailDataResponse = (([],500,"Данные недоступны") as? T)
-                } else {
+                
+                if responceTrueResult {
                     guard let startPoint = json as? [AnyObject] else { return }
-                    regMailDataResponse = (parseJSON_getRegions(for: startPoint, response: response) as? T)
+                    replyReturn = (parseJSON_getRegions(for: startPoint, response: response) as? T)
+                } else {
+                    replyReturn = (([],500,"Данные недоступны") as? T)
                 }
             case .getListCities :
-                guard let httpResponse = response as? HTTPURLResponse else {return}
-                if httpResponse.statusCode != 200 {
-                    regMailDataResponse = (([],500,"Данные недоступны") as? T)
-                } else {
+                
+                if responceTrueResult {
                     guard let startPoint = json as? [AnyObject] else { return }
-                    regMailDataResponse = (parseJSON_getCities(for: startPoint, response: response) as? T)
+                    replyReturn = (parseJSON_getCities(for: startPoint, response: response) as? T)
+                } else {
+                    replyReturn = (([],500,"Данные недоступны") as? T)
                 }
                 
             case .getMedicalOrganization:
-                guard let httpResponse = response as? HTTPURLResponse else {return}
-                if httpResponse.statusCode != 200 {
-                    regMailDataResponse = (([],500,"Данные недоступны") as? T)
-                } else {
+                
+                if responceTrueResult {
                     guard let startPoint = json as? [AnyObject] else { return }
-                    regMailDataResponse = (parseJSON_getMedicalOrganization(for: startPoint, response: response) as? T)
+                    replyReturn = (parseJSON_getMedicalOrganization(for: startPoint, response: response) as? T)
+                } else {
+                    replyReturn = (([],500,"Данные недоступны") as? T)
                 }
+            case .getMedicalSpecialization:
+                
+                if responceTrueResult {
+                    guard let startPoint = json as? [AnyObject] else { return }
+                    replyReturn = (parseJSON_getMedicalSpecialization(for: startPoint, response: response) as? T)
+                } else {
+                    replyReturn = (([],500,"Данные недоступны") as? T)
+                }
+            case .getListOfInterests, .getListOfInterestsExtOne,.getListOfInterestsExtTwo:
+                
+                if responceTrueResult {
+                    guard let startPoint = json as? [String:AnyObject] else { return }
+                    replyReturn = (parseJSON_getListOfInterests(for: startPoint, response: response) as? T)
+                } else {
+                    replyReturn = (([],500,"Данные недоступны") as? T)
+                }
+                
             }
             
             DispatchQueue.main.async {
-                completionBlock(regMailDataResponse)
+                completionBlock(replyReturn)
             }
         }
     }.resume()
+}
+
+func responceCode(code: Int) -> Bool {
+    if code == 200 {
+        return true
+    } else {
+        return false
+    }
 }
 
 
@@ -160,7 +204,7 @@ func prepareRequestParams(email: String?, password: String?,token:String?) -> [S
     if token != nil {
         requestParams["X-Auth-Token"] = token
     }
-
+    
     return requestParams
 }
 
@@ -179,27 +223,32 @@ extension String {
     }
 }
 
+func todoJSON(obj: [String:Any]) -> Data? {
+    return try? JSONSerialization.data(withJSONObject: obj)
+}
 
-
+func todoJSON_Array(obj: [String:[Any]]) -> Data? {
+    return try? JSONSerialization.data(withJSONObject: obj)
+}
 
 //MARK: Примеры вызова
 /*
-let getToken = Registration.init(email: "intellsystem@yandex.ru", password: "zNyF9Tts3r", token: nil)
-
-getData(typeOfContent:.getToken,
-        returning:(Int?,String?).self,
-        requestParams: getToken.requestParams )
-{ [weak self] result in
-    let dispathGroup = DispatchGroup()
-    getToken.responce = result
-    
-    dispathGroup.notify(queue: DispatchQueue.main) {
-        DispatchQueue.main.async { [weak self]  in
-            print("result= \(getToken.responce)")
-        }
-    }
-}
-*/
+ let getToken = Registration.init(email: "test@yandex.ru", password: "zNyF9Tts3r", token: nil)
+ 
+ getData(typeOfContent:.getToken,
+ returning:(Int?,String?).self,
+ requestParams: getToken.requestParams )
+ { [weak self] result in
+ let dispathGroup = DispatchGroup()
+ getToken.responce = result
+ 
+ dispathGroup.notify(queue: DispatchQueue.main) {
+ DispatchQueue.main.async { [weak self]  in
+ print("result= \(getToken.responce)")
+ }
+ }
+ }
+ */
 
 /* -------------- */
 
@@ -207,39 +256,201 @@ getData(typeOfContent:.getToken,
  let logout = Registration.init(email: nil, password: nil, token: myToken )
  
  getData(typeOfContent:.logout,
-         returning:(Int?,String?).self,
-         requestParams: logout.requestParams )
+ returning:(Int?,String?).self,
+ requestParams: logout.requestParams )
  { [weak self] result in
-     let dispathGroup = DispatchGroup()
-     logout.responce = result
-     
-     dispathGroup.notify(queue: DispatchQueue.main) {
-         DispatchQueue.main.async { [weak self]  in
-             print("result=\(logout.responce)")
-         }
-     }
+ let dispathGroup = DispatchGroup()
+ logout.responce = result
+ 
+ dispathGroup.notify(queue: DispatchQueue.main) {
+ DispatchQueue.main.async { [weak self]  in
+ print("result=\(logout.responce)")
+ }
+ }
  }
  */
 
 /* -------------- */
 
 /*
-    let getMedicalOrganization = Profile()
-    
-    getData(typeOfContent:.getMedicalOrganization,
-            returning:([MedicalOrganization],Int?,String?).self,
-            requestParams: ["region":"77"] )
-    { [weak self] result in
-        let dispathGroup = DispatchGroup()
+ let getMedicalOrganization = Profile()
+ 
+ getData(typeOfContent:.getMedicalOrganization,
+ returning:([MedicalOrganization],Int?,String?).self,
+ requestParams: ["region":"77"] )
+ { [weak self] result in
+ let dispathGroup = DispatchGroup()
+ 
+ getMedicalOrganization.medicalOrganization = result?.0
+ getMedicalOrganization.responce = (result?.1,result?.2)
+ dispathGroup.notify(queue: DispatchQueue.main) {
+ DispatchQueue.main.async { [weak self]  in
+ print("result=\(getMedicalOrganization.medicalOrganization)")
+ print(getMedicalOrganization.responce)
+ 
+ }
+ }
+ }
+ */
 
-        getMedicalOrganization.medicalOrganization = result?.0
-        getMedicalOrganization.responce = (result?.1,result?.2)
-        dispathGroup.notify(queue: DispatchQueue.main) {
-            DispatchQueue.main.async { [weak self]  in
-                print("result=\(getMedicalOrganization.medicalOrganization)")
-                print(getMedicalOrganization.responce)
-                
-            }
-        }
-    }
-*/
+/* -------------- */
+
+/*
+ let getListOfInterest = Profile()
+ 
+ getData(typeOfContent:.getListOfInterestsExtTwo,
+ returning:([String:[ListOfInterests]],Int?,String?).self,
+ requestParams: ["spec_code":"040100/040101"] )
+ { [weak self] result in
+ let dispathGroup = DispatchGroup()
+ 
+ getListOfInterest.listOfInterests = result?.0
+ 
+ dispathGroup.notify(queue: DispatchQueue.main) {
+ DispatchQueue.main.async { [weak self]  in
+ 
+ print("ListOfInterest = \(getListOfInterest.listOfInterests!)")
+ }
+ }
+ }
+ */
+
+/* -------------- */
+
+/*
+ let getCities = Profile()
+ 
+ getData(typeOfContent:.getListCities,
+ returning:([Cities],Int?,String?).self,
+ requestParams: ["region":"77"] )
+ { [weak self] result in
+ let dispathGroup = DispatchGroup()
+ 
+ getCities.cities = result?.0
+ 
+ dispathGroup.notify(queue: DispatchQueue.main) {
+ DispatchQueue.main.async { [weak self]  in
+ print("Cities= \(getCities.cities!)")
+ }
+ }
+ }
+ */
+
+/* -------------- */
+
+/*
+ let checkProfile = Registration.init(email: nil, password: nil, token: myToken )
+ 
+ getData(typeOfContent:.checkProfile,
+ returning:(Int?,String?).self,
+ requestParams: checkProfile.requestParams )
+ { [weak self] result in
+ let dispathGroup = DispatchGroup()
+ checkProfile.responce = result
+ 
+ dispathGroup.notify(queue: DispatchQueue.main) {
+ DispatchQueue.main.async { [weak self]  in
+ print("result=\(checkProfile.responce)")
+ }
+ }
+ }
+ */
+
+/* --------API 12---------- */
+
+/*
+ let updateProfile = UpdateProfileKeyUser(first_name: "Антон", last_name: "Иванов", middle_name: nil, phone_number: "1234567", city_id: 77, foto: "zxcvbnm")
+ 
+ getData(typeOfContent:.updateProfile,
+ returning:(Int?,String?).self,
+ requestParams: ["json":updateProfile.jsonData as Any] )
+ { [weak self] result in
+ let dispathGroup = DispatchGroup()
+ 
+ updateProfile.responce = result
+ 
+ dispathGroup.notify(queue: DispatchQueue.main) {
+ DispatchQueue.main.async { [weak self]  in
+ print("updateProfile = \(updateProfile.responce)")
+ }
+ }
+ }
+ 
+ */
+/*
+ let a: Int? = nil
+ let job1 : [String:Any] = ["id": a, "job_oid": "qwert", "is_main": true]
+ let job2 : [String:Any] = ["id": a, "job_oid": "qwert1", "is_main": false]
+ 
+ var arr : [Dictionary<String,Any>] = []
+ arr.append(job1)
+ arr.append(job2)
+ 
+ 
+ let updateProfile = UpdateProfileKeyJob(arrayJob: arr)
+ 
+ getData(typeOfContent:.updateProfile,
+ returning:(Int?,String?).self,
+ requestParams: ["json":updateProfile.jsonData as Any])
+ { [weak self] result in
+ let dispathGroup = DispatchGroup()
+ 
+ updateProfile.responce = result
+ 
+ dispathGroup.notify(queue: DispatchQueue.main) {
+ DispatchQueue.main.async { [weak self]  in
+ print("updateProfile = \(updateProfile.responce)")
+ }
+ }
+ }
+ */
+/*
+ let a: Int? = nil
+ let spec1 : [String:Any] = ["id": a, "spec_id": 9, "is_main": true]
+ let spec2 : [String:Any] = ["id": a, "spec_id": 10, "is_main": false]
+ 
+ var arr : [Dictionary<String,Any>] = []
+ arr.append(spec1)
+ arr.append(spec2)
+ 
+ 
+ let updateProfile = UpdateProfileKeySpec(arraySpec: arr)
+ 
+ getData(typeOfContent:.updateProfile,
+ returning:(Int?,String?).self,
+ requestParams: ["json":updateProfile.jsonData as Any])
+ { [weak self] result in
+ let dispathGroup = DispatchGroup()
+ 
+ updateProfile.responce = result
+ 
+ dispathGroup.notify(queue: DispatchQueue.main) {
+ DispatchQueue.main.async { [weak self]  in
+ print("updateProfile = \(updateProfile.responce)")
+ }
+ }
+ }
+ */
+
+/*
+ var arr : [Int] = [1,2,3,4,5,6,7]
+ 
+ 
+ let updateProfile = UpdateProfileKeyInterest(arrayInterest: arr)
+ 
+ getData(typeOfContent:.updateProfile,
+ returning:(Int?,String?).self,
+ requestParams: ["json":updateProfile.jsonData as Any])
+ { [weak self] result in
+ let dispathGroup = DispatchGroup()
+ 
+ updateProfile.responce = result
+ 
+ dispathGroup.notify(queue: DispatchQueue.main) {
+ DispatchQueue.main.async { [weak self]  in
+ print("updateProfile = \(updateProfile.responce)")
+ }
+ }
+ }
+ */
+

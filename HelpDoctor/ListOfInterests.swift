@@ -7,3 +7,9 @@
 //
 
 import Foundation
+
+struct ListOfInterests {
+    let id: Int
+    let specializationCode: String?
+    let name: String?
+}

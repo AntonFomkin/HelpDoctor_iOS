@@ -35,12 +35,6 @@ class UpdateProfileKeyUser {
                                         "city_id":city_id as Any,"foto":foto as Any
                                        ]
         self.jsonModel = ["user": dataUser]
-        self.jsonData =  try? JSONSerialization.data(withJSONObject: jsonModel)
-        
-        print(self.jsonModel)
-        print(self.jsonData!)
-        let json = try? JSONSerialization.jsonObject(with: self.jsonData!,
-                                                                     options: JSONSerialization.ReadingOptions.allowFragments)
-        print(json)
+        self.jsonData = todoJSON(obj: jsonModel)
     }
 }

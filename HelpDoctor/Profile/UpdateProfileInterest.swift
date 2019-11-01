@@ -7,3 +7,18 @@
 //
 
 import Foundation
+
+class UpdateProfileKeyInterest {
+    var arrayInterest: [Int] = []
+    var jsonData: Data?
+    var responce: (Int?,String?)?
+    
+    init (arrayInterest: [Int]) {
+        
+        self.arrayInterest = arrayInterest
+        jsonData = nil
+        
+        let jsonModel = ["interests": self.arrayInterest]
+        self.jsonData = todoJSON(obj: jsonModel)
+    }
+}

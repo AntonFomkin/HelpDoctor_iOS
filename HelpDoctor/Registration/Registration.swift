@@ -23,7 +23,7 @@ final class Registration {
         self.token = token
         requestParams = prepareRequestParams(email: self.email, password: self.password, token: self.token)
     }
-    
+
 }
 
 
