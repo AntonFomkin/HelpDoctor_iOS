@@ -12,7 +12,6 @@ func parseJSON_getListOfInterests(for startPoint : [String:AnyObject]?, response
     var arrListOfInterests: [ListOfInterests] = []
     var dictListOfInterests: [String:[ListOfInterests]] = [:]
     
-    //let key = "general"
     guard  let httpResponse = response as? HTTPURLResponse
         else { return ([:],nil,nil) }
     

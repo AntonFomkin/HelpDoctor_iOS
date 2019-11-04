@@ -44,6 +44,7 @@ enum TypeOfRequest: String {
     case getListOfInterestsExtTwo = "/profile/sc_interests_speccode2/"
     case checkProfile = "/profile/check"
     case updateProfile = "/profile/update"
+    case getDataFromProfile = "/profile/get"
 }
 
 func getCurrentSession (typeOfContent: TypeOfRequest,requestParams: [String:Any]) -> (URLSession,URLRequest) {
@@ -70,21 +71,19 @@ func getCurrentSession (typeOfContent: TypeOfRequest,requestParams: [String:Any]
     var request = URLRequest(url: urlConstructor.url!)
     
     switch typeOfContent {
-    case .registrationMail,.recoveryMail,.getToken,.logout,.checkProfile:
-        
+    case .registrationMail,.recoveryMail,.getToken,.logout,.checkProfile, .getDataFromProfile:
         
         let jsonData = serializationJSON(obj: requestParams as! [String : String])
         
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        if typeOfContent == .logout || typeOfContent == .checkProfile {
+        if typeOfContent == .logout || typeOfContent == .checkProfile || typeOfContent == .getDataFromProfile {
             request.setValue(myToken, forHTTPHeaderField: "X-Auth-Token")
         } else {
             request.httpBody = jsonData
         }
     case .updateProfile:
-        
         
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -171,6 +170,15 @@ func getData<T>(typeOfContent: TypeOfRequest,returning: T.Type, requestParams: [
                 } else {
                     replyReturn = (([],500,"Данные недоступны") as? T)
                 }
+                
+                case .getDataFromProfile:
+                    
+                    if responceTrueResult {
+                        guard let startPoint = json as? [String:AnyObject] else { return }
+                        replyReturn = (parseJSON_getDataFromProfile(for: startPoint, response: response) as? T)
+                    } else {
+                        replyReturn = (([],500,"Данные недоступны") as? T)
+                    }
                 
             }
             
@@ -454,3 +462,24 @@ func todoJSON_Array(obj: [String:[Any]]) -> Data? {
  }
  */
 
+/* --------API 13-------------*/
+
+/*
+    let getDataProfile = Profile()
+    
+    getData(typeOfContent:.getDataFromProfile,
+            returning:([String:[AnyObject]],Int?,String?).self,
+            requestParams: [:] )
+    { [weak self] result in
+        let dispathGroup = DispatchGroup()
+
+        getDataProfile.dataFromProfile = result?.0
+        
+        dispathGroup.notify(queue: DispatchQueue.main) {
+            DispatchQueue.main.async { [weak self]  in
+                print("getDataProfile = \(getDataProfile.dataFromProfile!)")
+            }
+        }
+    }
+ 
+ */
