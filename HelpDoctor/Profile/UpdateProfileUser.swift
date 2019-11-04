@@ -7,6 +7,7 @@
 //
 
 import Foundation
+
 class UpdateProfileKeyUser {
     var first_name: String?
     var last_name: String?
