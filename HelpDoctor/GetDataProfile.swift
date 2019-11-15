@@ -24,7 +24,7 @@ func parseJSON_getDataFromProfile(for startPoint : [String:AnyObject]?, response
     guard var startPoint = startPoint else { return ([:],nil,nil) }
     
     let user = startPoint["user"] as! [String:Any]
-    profileKeyUser.append(ProfileKeyUser(id: user["id"] as? Int, first_name: user["first_name"] as? String, last_name: user["last_name"] as? String, middle_name: user["middle_name"] as? String, email: user["email"] as? String, phone_number: user["phone_number"] as? String, city_id: user["city_id"] as? Int, cityName: user["cityName"] as? String, foto: user["foto"] as? String))
+    profileKeyUser.append(ProfileKeyUser(id: user["id"] as? Int, first_name: user["first_name"] as? String, last_name: user["last_name"] as? String, middle_name: user["middle_name"] as? String, email: user["email"] as? String, phone_number: user["phone_number"] as? String, birthday: user["birthday"] as? String, city_id: user["city_id"] as? Int, cityName: user["cityName"] as? String, foto: user["foto"] as? String))
     
     dataProfile["user"] = profileKeyUser as [AnyObject]
     startPoint.removeValue(forKey: "user")
@@ -36,16 +36,15 @@ func parseJSON_getDataFromProfile(for startPoint : [String:AnyObject]?, response
         for finalObj in arrItems {
             guard  let obj  = finalObj as? [String: Any] else  { return ([:],nil,nil) }
             
-            if key == "interests" {
+            switch key {
+            case "interests":
                 profileKeyInterests.append(ProfileKeyInterests(interest_id: obj["interest_id"] as? Int, spec_code: obj["spec_code"] as? String, name: obj["name"] as? String))
-            }
-            
-            if key == "job" {
+            case "job":
                 profileKeyJob.append(ProfileKeyJob(id: obj["id"] as? Int, job_oid: obj["job_oid"] as? String, is_main: obj["is_main"] as? Bool, nameShort: obj["nameShort"] as? String))
-            }
-            
-            if key == "spec" {
+            case "spec":
                 profileKeySpec.append(ProfileKeySpec(id: obj["id"] as? Int, spec_id: obj["spec_id"] as? Int, is_main: obj["is_main"] as? Bool, code: obj["code"] as? String,name: obj["name"] as? String))
+            default:
+                break
             }
         }
         if key == "interests" { dataProfile[key] = profileKeyInterests as [AnyObject] }
