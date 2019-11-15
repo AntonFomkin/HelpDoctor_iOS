@@ -326,48 +326,48 @@ func todoJSON_Array(obj: [String:[Any]]) -> Data? {
 /* -------------- */
 
 /*
- let getCities = Profile()
- 
- getData(typeOfContent:.getListCities,
- returning:([Cities],Int?,String?).self,
- requestParams: ["region":"77"] )
- { [weak self] result in
- let dispathGroup = DispatchGroup()
- 
- getCities.cities = result?.0
- 
- dispathGroup.notify(queue: DispatchQueue.main) {
- DispatchQueue.main.async { [weak self]  in
- print("Cities= \(getCities.cities!)")
- }
- }
- }
- */
+let getCities = Profile()
+
+getData(typeOfContent:.getListCities,
+        returning:([Cities],Int?,String?).self,
+        requestParams: ["region":"77"] )
+{ [weak self] result in
+    let dispathGroup = DispatchGroup()
+    
+    getCities.cities = result?.0
+    
+    dispathGroup.notify(queue: DispatchQueue.main) {
+        DispatchQueue.main.async { [weak self]  in
+            print("Cities= \(getCities.cities!)")
+        }
+    }
+}
+*/
 
 /* -------------- */
 
 /*
- let checkProfile = Registration.init(email: nil, password: nil, token: myToken )
- 
- getData(typeOfContent:.checkProfile,
- returning:(Int?,String?).self,
- requestParams: checkProfile.requestParams )
- { [weak self] result in
- let dispathGroup = DispatchGroup()
- checkProfile.responce = result
- 
- dispathGroup.notify(queue: DispatchQueue.main) {
- DispatchQueue.main.async { [weak self]  in
- print("result=\(checkProfile.responce)")
- }
- }
- }
- */
+let checkProfile = Registration.init(email: nil, password: nil, token: myToken )
+
+getData(typeOfContent:.checkProfile,
+        returning:(Int?,String?).self,
+        requestParams: checkProfile.requestParams )
+{ [weak self] result in
+    let dispathGroup = DispatchGroup()
+    checkProfile.responce = result
+    
+    dispathGroup.notify(queue: DispatchQueue.main) {
+        DispatchQueue.main.async { [weak self]  in
+            print("result=\(checkProfile.responce)")
+        }
+    }
+}
+*/
 
 /* --------API 12---------- */
 
 /*
- let updateProfile = UpdateProfileKeyUser(first_name: "Антон", last_name: "Иванов", middle_name: nil, phone_number: "1234567", city_id: 77, foto: "zxcvbnm")
+ let updateProfile = UpdateProfileKeyUser(first_name: "Антон", last_name: "Иванов", middle_name: nil, phone_number: "1234567", birthday: "1945-01-12",city_id: 77, foto: "zxcvbnm")
  
  getData(typeOfContent:.updateProfile,
  returning:(Int?,String?).self,
