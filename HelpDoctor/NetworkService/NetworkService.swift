@@ -23,6 +23,18 @@ var myToken: String? {
     return getToken.token
 }
 
+func getCurrentDate(dateFormat: TypeOfDate) -> String {
+    let date = NSDate()
+    let dateFormatter = DateFormatter()
+    dateFormatter.dateFormat = dateFormat.rawValue
+    return dateFormatter.string(from: date as Date)
+}
+
+enum TypeOfDate: String {
+    case long =  "yyyy-MM-dd HH:mm:ss"
+    case short = "yyyy-MM-dd"
+}
+
 enum TypeOfRequest: String {
     /*Регистрация*/
     case registrationMail = "/registration"
@@ -45,6 +57,10 @@ enum TypeOfRequest: String {
     case checkProfile = "/profile/check"
     case updateProfile = "/profile/update"
     case getDataFromProfile = "/profile/get"
+    case schedule_CreateOrUpdateEvent = "/event/set"
+    case schedule_getEventsForCurrentDate = "/event/date/"
+    case schedule_getEventsForCurrentId = "/event/get/"
+    case schedule_deleteForCurrentEvent = "/event/del/"
 }
 
 func getCurrentSession (typeOfContent: TypeOfRequest,requestParams: [String:Any]) -> (URLSession,URLRequest) {
@@ -57,6 +73,7 @@ func getCurrentSession (typeOfContent: TypeOfRequest,requestParams: [String:Any]
     urlConstructor.host = "helpdoctor.tmweb.ru"
     urlConstructor.path = "/public/api" + typeOfContent.rawValue
     
+
     if typeOfContent == .deleteMail {
         urlConstructor.path = "/public/api" + typeOfContent.rawValue + (requestParams["email"] as! String)
     }
@@ -68,6 +85,19 @@ func getCurrentSession (typeOfContent: TypeOfRequest,requestParams: [String:Any]
     if typeOfContent == .getListOfInterestsExtOne || typeOfContent == .getListOfInterestsExtTwo   {
         urlConstructor.path = "/public/api" + typeOfContent.rawValue + (requestParams["spec_code"] as! String)
     }
+    
+    if typeOfContent == .schedule_getEventsForCurrentDate {
+        urlConstructor.path = "/public/api" + typeOfContent.rawValue + getCurrentDate(dateFormat: .short)
+    }
+    
+    if typeOfContent == .schedule_getEventsForCurrentId {
+        urlConstructor.path = "/public/api" + typeOfContent.rawValue + (requestParams["event_id"] as! String)
+    }
+    
+    if typeOfContent == .schedule_deleteForCurrentEvent {
+        urlConstructor.path = "/public/api" + typeOfContent.rawValue + (requestParams["event_id"] as! String)
+    }
+    
     var request = URLRequest(url: urlConstructor.url!)
     
     switch typeOfContent {
@@ -83,13 +113,18 @@ func getCurrentSession (typeOfContent: TypeOfRequest,requestParams: [String:Any]
         } else {
             request.httpBody = jsonData
         }
-    case .updateProfile:
+    case .updateProfile,.schedule_CreateOrUpdateEvent:
         
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(myToken, forHTTPHeaderField: "X-Auth-Token")
         request.httpBody = requestParams["json"] as? Data
-    default :
+        
+    case .schedule_getEventsForCurrentDate, .schedule_getEventsForCurrentId, .schedule_deleteForCurrentEvent:
+        
+        request.setValue(myToken, forHTTPHeaderField: "X-Auth-Token")
+    
+    default:
         break
     }
     return (session, request)
@@ -123,12 +158,13 @@ func getData<T>(typeOfContent: TypeOfRequest,returning: T.Type, requestParams: [
             
             
             switch typeOfContent {
-            case .registrationMail,.recoveryMail,.deleteMail,.logout,.checkProfile,.updateProfile:
+            case .registrationMail,.recoveryMail,.deleteMail,.logout,.checkProfile,.updateProfile,.schedule_CreateOrUpdateEvent,.schedule_deleteForCurrentEvent:
                 guard let startPoint = json as? [String: AnyObject] else { return }
                 replyReturn = (parseJSONPublicMethod(for: startPoint, response: response) as? T)
             case .getToken:
                 guard let startPoint = json as? [String: AnyObject] else { return }
                 replyReturn = (parseJSON_getToken(for: startPoint, response: response) as? T)
+           
             case .getRegions :
                 
                 if responceTrueResult {
@@ -171,15 +207,23 @@ func getData<T>(typeOfContent: TypeOfRequest,returning: T.Type, requestParams: [
                     replyReturn = (([],500,"Данные недоступны") as? T)
                 }
                 
-                case .getDataFromProfile:
-                    
-                    if responceTrueResult {
-                        guard let startPoint = json as? [String:AnyObject] else { return }
-                        replyReturn = (parseJSON_getDataFromProfile(for: startPoint, response: response) as? T)
-                    } else {
-                        replyReturn = (([],500,"Данные недоступны") as? T)
-                    }
+            case .getDataFromProfile:
                 
+                if responceTrueResult {
+                    guard let startPoint = json as? [String:AnyObject] else { return }
+                    replyReturn = (parseJSON_getDataFromProfile(for: startPoint, response: response) as? T)
+                } else {
+                    replyReturn = (([],500,"Данные недоступны") as? T)
+                }
+                
+            case .schedule_getEventsForCurrentDate:
+                guard let startPoint = json as? [AnyObject] else { return }
+                replyReturn = (parseJSON_getEventsForCurrentDate(for: startPoint, response: response) as? T)
+            
+            
+            case .schedule_getEventsForCurrentId:
+            guard let startPoint = json as? [String:AnyObject] else { return }
+                replyReturn = (parseJSON_getEventForId(for: startPoint, response: response) as? T)
             }
             
             DispatchQueue.main.async {
@@ -483,3 +527,83 @@ getData(typeOfContent:.checkProfile,
     }
  
  */
+
+/* --------Расписание событий API 1-------------*/
+/*
+let currentDate = getCurrentDate(dateFormat: .long)
+
+let currentEvent = ScheduleEvents(id: nil, start_date: currentDate, end_date: currentDate, notify_date: currentDate, title: "My First Event 16", description: "тостовый прием", is_major: true, event_place: "РнД, больница №666", event_type: "reception")
+
+let createEvent = CreateOrUpdateEvent(events: currentEvent)
+     getData(typeOfContent:.schedule_CreateOrUpdateEvent,
+             returning:(Int?,String?).self,
+             requestParams: ["json":createEvent.jsonData as Any] )
+     { [weak self] result in
+         let dispathGroup = DispatchGroup()
+         
+        createEvent.responce = result
+         
+         dispathGroup.notify(queue: DispatchQueue.main) {
+             DispatchQueue.main.async { [weak self]  in
+                 print("createEvent = \(createEvent.responce)")
+             }
+         }
+     }
+*/
+
+/* --------Расписание событий API 2-------------*/
+/*
+let getEvents = Schedule()
+
+getData(typeOfContent:.schedule_getEventsForCurrentDate,
+        returning:([ScheduleEvents],Int?,String?).self,
+        requestParams: [:] )
+{ [weak self] result in
+    let dispathGroup = DispatchGroup()
+    
+    getEvents.events = result?.0
+    dispathGroup.notify(queue: DispatchQueue.main) {
+        DispatchQueue.main.async { [weak self]  in
+            print("getEvents =\(getEvents.events)")
+        }
+    }
+}
+*/
+
+/* --------Расписание событий API 3-------------*/
+/*
+    let getEvents = Schedule()
+    
+    getData(typeOfContent:.schedule_getEventsForCurrentId,
+            returning:([ScheduleEvents],Int?,String?).self,
+            requestParams: ["event_id":"51"] )
+    { [weak self] result in
+        let dispathGroup = DispatchGroup()
+        
+        getEvents.events = result?.0
+        dispathGroup.notify(queue: DispatchQueue.main) {
+            DispatchQueue.main.async { [weak self]  in
+                print("getEvents =\(getEvents.events)")
+            }
+        }
+    }
+*/
+
+/* --------Расписание событий API 4-------------*/
+/*
+let resultDeleteEvents = Schedule()
+
+getData(typeOfContent:.schedule_deleteForCurrentEvent,
+        returning:(Int?,String?).self,
+        requestParams: ["event_id":"51"] )
+{ [weak self] result in
+    let dispathGroup = DispatchGroup()
+    
+    resultDeleteEvents.responce = result
+    dispathGroup.notify(queue: DispatchQueue.main) {
+        DispatchQueue.main.async { [weak self]  in
+            print("getEvents =\(resultDeleteEvents.responce)")
+        }
+    }
+}
+*/
