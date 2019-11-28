@@ -24,7 +24,7 @@ func parseJSON_getDataFromProfile(for startPoint : [String:AnyObject]?, response
     guard var startPoint = startPoint else { return ([:],nil,nil) }
     
     let user = startPoint["user"] as! [String:Any]
-    profileKeyUser.append(ProfileKeyUser(id: user["id"] as? Int, first_name: user["first_name"] as? String, last_name: user["last_name"] as? String, middle_name: user["middle_name"] as? String, email: user["email"] as? String, phone_number: user["phone_number"] as? String, birthday: user["birthday"] as? String, city_id: user["city_id"] as? Int, cityName: user["cityName"] as? String, foto: user["foto"] as? String))
+    profileKeyUser.append(ProfileKeyUser(id: user["id"] as? Int, first_name: user["first_name"] as? String, last_name: user["last_name"] as? String, middle_name: user["middle_name"] as? String, email: user["email"] as? String, phone_number: user["phone_number"] as? String, birthday: user["birthday"] as? String, city_id: user["city_id"] as? Int,cityName: user["cityName"] as? String,regionId: user["regionId"] as? Int, regionName: user["regionName"] as? String, foto: user["foto"] as? String))
     
     dataProfile["user"] = profileKeyUser as [AnyObject]
     startPoint.removeValue(forKey: "user")

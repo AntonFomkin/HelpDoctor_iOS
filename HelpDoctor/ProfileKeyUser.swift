@@ -17,6 +17,8 @@ struct ProfileKeyUser {
     let phone_number: String?
     let birthday: String?
     let city_id: Int?
-    let cityName:String?
+    let cityName: String?
+    let regionId: Int?
+    let regionName:String?
     let foto: String?
 }

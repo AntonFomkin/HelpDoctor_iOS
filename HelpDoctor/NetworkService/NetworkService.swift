@@ -57,6 +57,7 @@ enum TypeOfRequest: String {
     case checkProfile = "/profile/check"
     case updateProfile = "/profile/update"
     case getDataFromProfile = "/profile/get"
+    case addProfileInterest = "/profile/sc_interests/add"
     case schedule_CreateOrUpdateEvent = "/event/set"
     case schedule_getEventsForCurrentDate = "/event/date/"
     case schedule_getEventsForCurrentId = "/event/get/"
@@ -98,6 +99,9 @@ func getCurrentSession (typeOfContent: TypeOfRequest,requestParams: [String:Any]
         urlConstructor.path = "/public/api" + typeOfContent.rawValue + (requestParams["event_id"] as! String)
     }
     
+    if (typeOfContent == .getDataFromProfile) && (requestParams.count > 0) {
+        urlConstructor.path = "/public/api" + typeOfContent.rawValue + "/" + (requestParams["user_id"] as! String)
+    }
     var request = URLRequest(url: urlConstructor.url!)
     
     switch typeOfContent {
@@ -108,11 +112,19 @@ func getCurrentSession (typeOfContent: TypeOfRequest,requestParams: [String:Any]
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        if typeOfContent == .logout || typeOfContent == .checkProfile || typeOfContent == .getDataFromProfile {
+        if typeOfContent == .logout || typeOfContent == .checkProfile || typeOfContent == .getDataFromProfile  {
             request.setValue(myToken, forHTTPHeaderField: "X-Auth-Token")
         } else {
             request.httpBody = jsonData
         }
+        
+    case .addProfileInterest:
+        let jsonData = serializationJSON(obj: requestParams as! [String : String])
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(myToken, forHTTPHeaderField: "X-Auth-Token")
+        request.httpBody = jsonData
+        
     case .updateProfile,.schedule_CreateOrUpdateEvent:
         
         request.httpMethod = "POST"
@@ -155,7 +167,7 @@ func getData<T>(typeOfContent: TypeOfRequest,returning: T.Type, requestParams: [
             
             guard let httpResponse = response as? HTTPURLResponse else {return}
             let responceTrueResult = responceCode(code: httpResponse.statusCode)
-            
+           
             
             switch typeOfContent {
             case .registrationMail,.recoveryMail,.deleteMail,.logout,.checkProfile,.updateProfile,.schedule_CreateOrUpdateEvent,.schedule_deleteForCurrentEvent:
@@ -213,7 +225,14 @@ func getData<T>(typeOfContent: TypeOfRequest,returning: T.Type, requestParams: [
                     guard let startPoint = json as? [String:AnyObject] else { return }
                     replyReturn = (parseJSON_getDataFromProfile(for: startPoint, response: response) as? T)
                 } else {
-                    replyReturn = (([],500,"Данные недоступны") as? T)
+                    
+                    switch httpResponse.statusCode {
+                    case 404:
+                        replyReturn = (([:],httpResponse.statusCode,"user not found") as? T)
+                    default:
+                        replyReturn = (([:],httpResponse.statusCode,"Данные недоступны") as? T)
+                    }
+
                 }
                 
             case .schedule_getEventsForCurrentDate:
@@ -222,10 +241,17 @@ func getData<T>(typeOfContent: TypeOfRequest,returning: T.Type, requestParams: [
             
             
             case .schedule_getEventsForCurrentId:
-            guard let startPoint = json as? [String:AnyObject] else { return }
+                guard let startPoint = json as? [String:AnyObject] else { return }
                 replyReturn = (parseJSON_getEventForId(for: startPoint, response: response) as? T)
+                
+                
+            case .addProfileInterest:
+                let startPoint = json as? [String: AnyObject]
+                let startPoint2 = json as? [AnyObject]
+                if startPoint == nil && startPoint2 == nil { return }
+
+                replyReturn = (parseJSON_addProfileInterests(startPoint: startPoint, startPoint2: startPoint2, response: response) as? T)
             }
-            
             DispatchQueue.main.async {
                 completionBlock(replyReturn)
             }
@@ -528,7 +554,30 @@ getData(typeOfContent:.checkProfile,
  
  */
 
+/* --------API 14-------------*/
+
+/*
+let addInterest = Profile()
+
+getData(typeOfContent:.addProfileInterest,
+        returning:([ListOfInterests],Int?,String?).self,
+        requestParams: ["interest":"хирургия"])
+{ [weak self] result in
+    let dispathGroup = DispatchGroup()
+    
+    addInterest.addInterests = result?.0
+    addInterest.responce = (result?.1,result?.2)
+    
+    dispathGroup.notify(queue: DispatchQueue.main) {
+        DispatchQueue.main.async { [weak self]  in
+            print("addInterest = \(addInterest.responce) - \(addInterest.addInterests)")
+        }
+    }
+}
+*/
+
 /* --------Расписание событий API 1-------------*/
+
 /*
 let currentDate = getCurrentDate(dateFormat: .long)
 
