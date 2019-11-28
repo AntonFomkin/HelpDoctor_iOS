@@ -14,6 +14,7 @@ final class Profile {
     var medicalOrganization : [MedicalOrganization]? = []
     var medicalSpecialization : [MedicalSpecialization]? = []
     var listOfInterests : [String:[ListOfInterests]]? = [:]
+    var addInterests: [ListOfInterests]? = []
     var dataFromProfile : [String:[AnyObject]]? = [:]
     var responce: (Int?,String?)?
 }
