@@ -39,7 +39,7 @@ enum TypeOfRequest: String {
     /*Регистрация*/
     case registrationMail = "/registration"
     case recoveryMail = "/recovery"
-    case deleteMail = "/registration/del/" /* Temporary method */
+    case deleteMail = "/registration/del"
     
     /* Получение токена*/
     case getToken = "/auth/login"
@@ -62,6 +62,7 @@ enum TypeOfRequest: String {
     case schedule_getEventsForCurrentDate = "/event/date/"
     case schedule_getEventsForCurrentId = "/event/get/"
     case schedule_deleteForCurrentEvent = "/event/del/"
+    case findUsers = "/seach/users"
 }
 
 func getCurrentSession (typeOfContent: TypeOfRequest,requestParams: [String:Any]) -> (URLSession,URLRequest) {
@@ -73,11 +74,6 @@ func getCurrentSession (typeOfContent: TypeOfRequest,requestParams: [String:Any]
     urlConstructor.scheme = "http"
     urlConstructor.host = "helpdoctor.tmweb.ru"
     urlConstructor.path = "/public/api" + typeOfContent.rawValue
-    
-
-    if typeOfContent == .deleteMail {
-        urlConstructor.path = "/public/api" + typeOfContent.rawValue + (requestParams["email"] as! String)
-    }
     
     if typeOfContent == .getListCities || typeOfContent == .getMedicalOrganization  {
         urlConstructor.path = "/public/api" + typeOfContent.rawValue + (requestParams["region"] as! String)
@@ -105,14 +101,14 @@ func getCurrentSession (typeOfContent: TypeOfRequest,requestParams: [String:Any]
     var request = URLRequest(url: urlConstructor.url!)
     
     switch typeOfContent {
-    case .registrationMail,.recoveryMail,.getToken,.logout,.checkProfile, .getDataFromProfile:
+    case .registrationMail,.recoveryMail,.getToken,.logout,.checkProfile, .getDataFromProfile, .deleteMail:
         
         let jsonData = serializationJSON(obj: requestParams as! [String : String])
         
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        if typeOfContent == .logout || typeOfContent == .checkProfile || typeOfContent == .getDataFromProfile  {
+        if typeOfContent == .logout || typeOfContent == .checkProfile || typeOfContent == .getDataFromProfile || typeOfContent == .deleteMail  {
             request.setValue(myToken, forHTTPHeaderField: "X-Auth-Token")
         } else {
             request.httpBody = jsonData
@@ -125,7 +121,7 @@ func getCurrentSession (typeOfContent: TypeOfRequest,requestParams: [String:Any]
         request.setValue(myToken, forHTTPHeaderField: "X-Auth-Token")
         request.httpBody = jsonData
         
-    case .updateProfile,.schedule_CreateOrUpdateEvent:
+    case .updateProfile,.schedule_CreateOrUpdateEvent,.findUsers:
         
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -251,6 +247,10 @@ func getData<T>(typeOfContent: TypeOfRequest,returning: T.Type, requestParams: [
                 if startPoint == nil && startPoint2 == nil { return }
 
                 replyReturn = (parseJSON_addProfileInterests(startPoint: startPoint, startPoint2: startPoint2, response: response) as? T)
+                
+            case .findUsers:
+                guard let startPoint = json as? [String:AnyObject] else { return }
+                replyReturn = (parseJSON_getFindedUsers(for: startPoint, response: response) as? T)
             }
             DispatchQueue.main.async {
                 completionBlock(replyReturn)
@@ -305,6 +305,10 @@ func todoJSON(obj: [String:Any]) -> Data? {
     return try? JSONSerialization.data(withJSONObject: obj)
 }
 
+func todoJSONAny(obj: Any) -> Data? {
+    return try? JSONSerialization.data(withJSONObject: obj)
+}
+
 func todoJSON_Array(obj: [String:[Any]]) -> Data? {
     return try? JSONSerialization.data(withJSONObject: obj)
 }
@@ -327,6 +331,25 @@ func todoJSON_Array(obj: [String:[Any]]) -> Data? {
  }
  }
  */
+
+/* -------------- */
+
+/*
+let unRegistration = Registration(email: nil, password: nil, token: nil)
+getData(typeOfContent:.deleteMail,
+        returning:(Int?,String?).self,
+        requestParams: [:] )
+{ [weak self] result in
+    let dispathGroup = DispatchGroup()
+    unRegistration.responce = result
+    
+    dispathGroup.notify(queue: DispatchQueue.main) {
+        DispatchQueue.main.async { [weak self]  in
+            print("result= \(unRegistration.responce)")
+        }
+    }
+}
+*/
 
 /* -------------- */
 
@@ -655,4 +678,27 @@ getData(typeOfContent:.schedule_deleteForCurrentEvent,
         }
     }
 }
+*/
+
+/* --------Поиск API 1-------------*/
+/*
+   let findParams = FindUsers(first_name: "серг", middle_name: nil, last_name: nil, email: nil, phone_number: nil, age_from: nil, age_to: nil, city_id: nil, job_places: [], specializations: [], scientific_interests: [], page: 1, limit: 20)
+   
+   let createFind = CreateFindUsers(findData: findParams) //{Иницализатор для параметрического поиска}
+//   let createFind = CreateFindUsers(page: 1, limit: 20) //{Иницализатор для глобального поиска}
+   
+   getData(typeOfContent:.findUsers,
+           returning:([ResultFindedUsers],Int?,String?).self,
+           requestParams: ["json":createFind.jsonData as Any] )
+   { [weak self] result in
+       let dispathGroup = DispatchGroup()
+       createFind.findedData = result?.0
+       createFind.responce = (result?.1,result?.2)
+       
+       dispathGroup.notify(queue: DispatchQueue.main) {
+           DispatchQueue.main.async { [weak self]  in
+               print("createFind = \(createFind.findedData)\n responce = \(createFind.responce)")
+            }
+       }
+   }
 */
