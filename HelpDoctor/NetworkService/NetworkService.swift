@@ -6,7 +6,7 @@
 //  Copyright © 2019 Anton Fomkin. All rights reserved.
 //
 
-import Foundation
+import UIKit
 
 class Auth_Info {
     
@@ -72,7 +72,7 @@ func getCurrentSession (typeOfContent: TypeOfRequest,requestParams: [String:Any]
     var urlConstructor = URLComponents()
     
     urlConstructor.scheme = "http"
-    urlConstructor.host = "helpdoctor.tmweb.ru"
+    urlConstructor.host = "demo22.tmweb.ru"//"helpdoctor.tmweb.ru"
     urlConstructor.path = "/public/api" + typeOfContent.rawValue
     
     if typeOfContent == .getListCities || typeOfContent == .getMedicalOrganization  {
@@ -84,7 +84,11 @@ func getCurrentSession (typeOfContent: TypeOfRequest,requestParams: [String:Any]
     }
     
     if typeOfContent == .schedule_getEventsForCurrentDate {
-        urlConstructor.path = "/public/api" + typeOfContent.rawValue + getCurrentDate(dateFormat: .short)
+        if requestParams["AnyDate"] != nil {
+            urlConstructor.path = "/public/api" + typeOfContent.rawValue + (requestParams["AnyDate"] as! String)
+        } else {
+            urlConstructor.path = "/public/api" + typeOfContent.rawValue + getCurrentDate(dateFormat: .short)
+        }
     }
     
     if typeOfContent == .schedule_getEventsForCurrentId {
@@ -135,6 +139,7 @@ func getCurrentSession (typeOfContent: TypeOfRequest,requestParams: [String:Any]
     default:
         break
     }
+
     return (session, request)
 }
 
@@ -149,7 +154,7 @@ func getData<T>(typeOfContent: TypeOfRequest,returning: T.Type, requestParams: [
     let session = currentSession.0
     let request = currentSession.1
     var replyReturn:T?
-    
+   
     _ = session.dataTask(with: request) { (data: Data?,
         response: URLResponse?,
         error: Error?) in
@@ -169,10 +174,11 @@ func getData<T>(typeOfContent: TypeOfRequest,returning: T.Type, requestParams: [
             case .registrationMail,.recoveryMail,.deleteMail,.logout,.checkProfile,.updateProfile,.schedule_CreateOrUpdateEvent,.schedule_deleteForCurrentEvent:
                 guard let startPoint = json as? [String: AnyObject] else { return }
                 replyReturn = (parseJSONPublicMethod(for: startPoint, response: response) as? T)
+                
             case .getToken:
                 guard let startPoint = json as? [String: AnyObject] else { return }
                 replyReturn = (parseJSON_getToken(for: startPoint, response: response) as? T)
-           
+                
             case .getRegions :
                 
                 if responceTrueResult {
@@ -286,20 +292,7 @@ func prepareRequestParams(email: String?, password: String?,token:String?) -> [S
     return requestParams
 }
 
-extension String {
-    
-    func fromBase64() -> String? {
-        guard let data = Data(base64Encoded: self) else {
-            return nil
-        }
-        
-        return String(data: data, encoding: .utf8)
-    }
-    
-    func toBase64() -> String {
-        return Data(self.utf8).base64EncodedString()
-    }
-}
+
 
 func todoJSON(obj: [String:Any]) -> Data? {
     return try? JSONSerialization.data(withJSONObject: obj)
@@ -312,6 +305,9 @@ func todoJSONAny(obj: Any) -> Data? {
 func todoJSON_Array(obj: [String:[Any]]) -> Data? {
     return try? JSONSerialization.data(withJSONObject: obj)
 }
+
+
+
 
 //MARK: Примеры вызова
 /*
@@ -625,6 +621,7 @@ let createEvent = CreateOrUpdateEvent(events: currentEvent)
 
 /* --------Расписание событий API 2-------------*/
 /*
+//Метод для текущей даты
 let getEvents = Schedule()
 
 getData(typeOfContent:.schedule_getEventsForCurrentDate,
@@ -640,6 +637,26 @@ getData(typeOfContent:.schedule_getEventsForCurrentDate,
         }
     }
 }
+*/
+
+/*
+ 
+  //Метод для любой даты
+  let getEvents = Schedule()
+  let anyDate = "2019-02-12"
+  getData(typeOfContent:.schedule_getEventsForCurrentDate,
+          returning:([ScheduleEvents],Int?,String?).self,
+          requestParams: ["AnyDate": anyDate] )
+  { [weak self] result in
+      let dispathGroup = DispatchGroup()
+      
+      getEvents.events = result?.0
+      dispathGroup.notify(queue: DispatchQueue.main) {
+          DispatchQueue.main.async { [weak self]  in
+              print("getEvents =\(getEvents.events)")
+          }
+      }
+  }
 */
 
 /* --------Расписание событий API 3-------------*/
@@ -701,4 +718,14 @@ getData(typeOfContent:.schedule_deleteForCurrentEvent,
             }
        }
    }
+*/
+
+/*
+// Конвертация картинки в Base64String
+let image : UIImage = UIImage(named:"1.jpg")!
+let strBase64 = image.toBase64String()
+
+//Конвертация Base64String в картинку
+let _: UIImage = (strBase64?.base64ToImage())!
+
 */
