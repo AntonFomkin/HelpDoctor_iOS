@@ -30,6 +30,8 @@ extension String {
 extension UIImage {
     
     func toBase64String() -> String? {
-        return (self.pngData()! as NSData).base64EncodedString(options: .lineLength64Characters)
+        return String(utf8String: (self.pngData()! as Data).base64EncodedString(options: .lineLength64Characters))
     }
 }
+
+
